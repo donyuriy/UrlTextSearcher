@@ -1,0 +1,11 @@
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\bin\Debug\UrlTextSearcher.exe.config
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\bin\Debug\UrlTextSearcher.exe
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\bin\Debug\UrlTextSearcher.pdb
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.csprojResolveAssemblyReference.cache
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.Properties.Resources.resources
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.csproj.GenerateResource.Cache
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.csproj.CoreCompileInputs.cache
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.exe
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.pdb
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.FormMain.resources
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlTextSearcher\obj\Debug\UrlTextSearcher.Resource.resources

@@ -1,0 +1,6 @@
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlSearchLogic\bin\Debug\UrlSearchLogic.dll
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlSearchLogic\bin\Debug\UrlSearchLogic.pdb
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlSearchLogic\obj\Debug\UrlSearchLogic.csprojResolveAssemblyReference.cache
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlSearchLogic\obj\Debug\UrlSearchLogic.csproj.CoreCompileInputs.cache
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlSearchLogic\obj\Debug\UrlSearchLogic.dll
+E:\DEVELOPMENT\Projects\UrlTextSearcher\UrlSearchLogic\obj\Debug\UrlSearchLogic.pdb
