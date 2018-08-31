@@ -79,7 +79,7 @@ namespace UrlTextSearcher
             this.textBoxUrl.Location = new System.Drawing.Point(16, 31);
             this.textBoxUrl.Name = "textBoxUrl";
             this.textBoxUrl.Size = new System.Drawing.Size(739, 22);
-            this.textBoxUrl.TabIndex = 1;            
+            this.textBoxUrl.TabIndex = 1;
             this.textBoxUrl.Validated += new System.EventHandler(this.textBoxUrl_Validated);
             // 
             // BtnStop
