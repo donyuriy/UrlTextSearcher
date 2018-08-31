@@ -18,21 +18,25 @@ namespace UrlTextSearcher
         private string _searchingWord;
         private string _searchingUrl;
         private int _depthOfLinkDisplay;
-        private ILogger logger;        
+        private ILogger _logger;        
 
-        public ThreadCreator(int numberOfThreads, int depthOfLinkDisplay, string searchingWord, string searchingUrl)
+        public ThreadCreator(ILogger logger,
+            int numberOfThreads,
+            int depthOfLinkDisplay,
+            string searchingWord,
+            string searchingUrl)
         {
             _numberOfThreads = numberOfThreads;
             _depthOfLinkDisplay = depthOfLinkDisplay;
             _searchingWord = searchingWord;
             _searchingUrl = searchingUrl;
-            logger = new Logger();
+            _logger = logger;
             ThreadList = new List<Thread>();
         }
 
         public void Start()
         {
-            Searcher searcher = new Searcher(_searchingWord, _searchingUrl, _depthOfLinkDisplay);
+            Searcher searcher = new Searcher(_logger, _searchingWord, _searchingUrl, _depthOfLinkDisplay);
             for (int i = 0; i < _numberOfThreads; i++)
             {
                 Thread t = new Thread(() => searcher.FindAllReferencesDeep(new List<string>() { _searchingUrl }));

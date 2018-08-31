@@ -10,8 +10,8 @@ namespace UrlTextSearcher
 {
     public class Logger : ILogger
     {
-        private int _counter = 0;
-
+        private int _countOfUrls = 0;
+       
         /// <summary>
         /// Returns formated string to write the message
         /// </summary>
@@ -20,28 +20,33 @@ namespace UrlTextSearcher
         /// <returns></returns>
         public void LogNumberOfMatches(int count, string url)
         {
-            _counter++;
+            Interlocked.Increment(ref _countOfUrls);
             string log;
             if (count > 0)
             {
-                log = $"По адресу \"{url}\" найдено {count} совпадений.\n";
+                log = $" {url} найдено {count} совпадений.";
             }
             else
             {
-                log = $"{url} отсканирован, совпадений не найдено.";
+                log = $"{url} совпадений не найдено.";
             }
             FormMain.AppendStaticTextBox(log);
         }
-
-        public void LogNextSearchigLevel(int level)
+        public void LogScanningLevel(int levelNumber)
         {
-            string log = $"--------------\nПерход на следующий уровень ссылок: {level}\n--------------";
+            string log = $"\nПереход на следующий уровень URL: {levelNumber}.\n";
+            FormMain.AppendStaticTextBox(log);
+        }
+
+        public void LogNextSearchigLevel(int numberOfUrls)
+        {
+            string log = $"\nНайдено {numberOfUrls} ссылок.\n";
             FormMain.AppendStaticTextBox(log);
         }
 
         public void SearchAccomplished()
         {
-            string log = $"Поиск окончен. Отсканировано {_counter} адресов.";
+            string log = $"\nПоиск окончен. Отсканировано {_countOfUrls} адресов.";
             FormMain.AppendStaticTextBox(log);
         }
     }

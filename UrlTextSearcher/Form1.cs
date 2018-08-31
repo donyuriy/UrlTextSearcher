@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using UrlTextSearcher.Interfaces;
 
@@ -16,9 +11,11 @@ namespace UrlTextSearcher
     {
         private static FormMain formMain = null;
         private delegate void EnableDelegate(bool enable);
+        private ILogger _logger;
         public FormMain()
         {
             InitializeComponent();
+            _logger = new Logger();
             comboBoxUrlDepth.KeyPress += new KeyPressEventHandler(OnKeyPress);
             comboBoxThreadCount.KeyPress += new KeyPressEventHandler(OnKeyPress);
             formMain = this;
@@ -37,7 +34,6 @@ namespace UrlTextSearcher
                 this.Invoke(new EnableDelegate(EnableTextBox), new object[] { enable });
                 return;
             }
-
             textBoxMessageOut.Enabled = enable;
         }
 
@@ -54,7 +50,6 @@ namespace UrlTextSearcher
                 this.Invoke(new Action<string>(AppendTextBox), new object[] { value });
                 return;
             }
-
             textBoxMessageOut.AppendText(Environment.NewLine);
             textBoxMessageOut.AppendText(value);
             Application.DoEvents();
@@ -103,15 +98,13 @@ namespace UrlTextSearcher
             PanelThread.Enabled = false;
             PanelDepth.Enabled = false;
             textBoxMessageOut.Clear();
-            comboBoxUrlDepth.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboBoxThreadCount.DropDownStyle = ComboBoxStyle.DropDownList;
+            //comboBoxUrlDepth.DropDownStyle = ComboBoxStyle.DropDownList;
+            //comboBoxThreadCount.DropDownStyle = ComboBoxStyle.DropDownList;
 
             string _searchingUrl = textBoxUrl.Text;
             string _searchingWord = textBoxWord.Text;
-            int _depthOfLinkDisplay = 0;
-            int _treadCount = 0;
-            Int32.TryParse(comboBoxUrlDepth.SelectedItem.ToString(), out _depthOfLinkDisplay);
-            Int32.TryParse(comboBoxThreadCount.SelectedItem.ToString(), out _treadCount);
+            Int32.TryParse(comboBoxUrlDepth.SelectedItem.ToString(), out int _depthOfLinkDisplay);
+            Int32.TryParse(comboBoxThreadCount.SelectedItem.ToString(), out int _treadCount);
 
             if (!ConnectionCheck.IsConnectedToInternet())
             {
@@ -125,16 +118,14 @@ namespace UrlTextSearcher
                 if (!validator.ValidateUrl(_searchingUrl))
                 {
                     textBoxMessageOut.AppendText(Resource.InvalidURLMessage);
-                    textBoxMessageOut.AppendText(Environment.NewLine);
                 }
                 else if (!validator.ValidateSearchWord(_searchingWord))
                 {
                     textBoxMessageOut.AppendText(Resource.InvalidSearchWordMessage);
-                    textBoxMessageOut.AppendText(Environment.NewLine);
                 }
                 else
                 {
-                    ThreadCreator tc = new ThreadCreator(_treadCount, _depthOfLinkDisplay, _searchingWord, _searchingUrl);
+                    ThreadCreator tc = new ThreadCreator(_logger,_treadCount, _depthOfLinkDisplay, _searchingWord, _searchingUrl);
                     tc.Start();
 
                     Thread th1 = new Thread(() =>
@@ -143,14 +134,10 @@ namespace UrlTextSearcher
                         {
                             Thread.Sleep(1000);
                         }
-                        BtnStopPerformClick();
+                        LogScanningAccomplished();
                     });
-                    th1.Start();
+                    th1.Start();                    
                 }
-            }
-            catch (ThreadAbortException ex)
-            {
-
             }
             catch (Exception ex)
             {
@@ -171,7 +158,6 @@ namespace UrlTextSearcher
                     {
                         ThreadCreator.ThreadList[i].Abort();
                     }
-
                 }
             }
 
@@ -212,6 +198,11 @@ namespace UrlTextSearcher
                     ThreadCreator.ThreadList[i].Abort();
                 }
             }
+        }
+        private void LogScanningAccomplished()
+        {
+            _logger.SearchAccomplished();
+            BtnStopPerformClick();
         }
     }
 }

@@ -14,97 +14,111 @@ namespace UrlTextSearcher
     {
         private string _word;
         private string _url;
-        private int _counter;
         private int _depthOfLinkDisplay;
         private int _depthOfLinkCounter;
-        private int _allReferencesStartIndex;
         private int queueCopyEnableFlag = 1;
         private IValidator _validator;
         private ILogger _logger;
-        private List<string> _allReferences;
-        private ConcurrentQueue<string> _queue;
+        private ConcurrentQueue<string> _queueToGetMatches;
+        private ConcurrentQueue<string> _queueBeforeUrlUpdate;
+        private ConcurrentQueue<string> _queueAfterUrlUpdate;
 
-        public Searcher(string word, string url, int depthOfLinkDisplay)
+        public Searcher(ILogger logger,
+            string word,
+            string url,
+            int depthOfLinkDisplay)
         {
             _word = word.ToLower();
             _url = url;
             _depthOfLinkDisplay = depthOfLinkDisplay;
             _depthOfLinkCounter = 0;
-            _allReferencesStartIndex = 0;
-            _logger = new Logger();
+            _logger = logger;
             _validator = new Validator();
-            _allReferences = new List<string>();
-            _queue = new ConcurrentQueue<string>();
-            _allReferences.Add(_url);
+            _queueToGetMatches = new ConcurrentQueue<string>();
         }
 
-        public void FindAllReferencesDeep(List<string> urls)
-        {
-            var temporaryUrlList = ExtentionClass.Clone(urls);
-            while (_depthOfLinkCounter < _depthOfLinkDisplay)
-            {
-                FindDeep(temporaryUrlList);
-                LockedCopyUrlListToQueue();
-                FindMatches();
-            }
+        public void FindAllReferencesDeep(List<string> urlsList)
+        {           
+            _queueAfterUrlUpdate = new ConcurrentQueue<string>(urlsList);
 
-            void FindDeep(List<string> urlsList)
+            object lockedObject = new object();
+            lock (lockedObject)
             {
-                _depthOfLinkCounter++;
-                for (int i = _allReferencesStartIndex; i < urls.Count; i++)
+                while (_depthOfLinkCounter < _depthOfLinkDisplay)
                 {
-                    var htmlText = GetPageAsHtml(temporaryUrlList[i]);
-                    if (string.IsNullOrEmpty(htmlText))
-                    {
-                        continue;
-                    }
-                    temporaryUrlList.AddRange(FindAllUrlsInDocument(htmlText));
-                }
-                RemoveDuplicatedUrls();         // TODO: метод удаления дублирующих ссылок ДОДЕЛАТЬ
-                _allReferencesStartIndex = urls.Count;
-                urls = ExtentionClass.Clone(temporaryUrlList);
-            }
-
-            _allReferences = temporaryUrlList;
-        }
-
-        private void RemoveDuplicatedUrls()
-        {
-            for (int i = 0; i < _allReferences.Count; i++)
-            {
-                for (int j = i + 1; j < _allReferences.Count; j++)
-                {
-                    if (_allReferences[i].Trim().Equals(_allReferences[j].Trim()))
-                    {
-                        _allReferences.RemoveAt(j);
-                    }
+                    Interlocked.Increment(ref _depthOfLinkCounter);
+                    LockedCopyUrlListToQueue(_queueAfterUrlUpdate);
+                    FindMatches();
+                    _queueBeforeUrlUpdate = new ConcurrentQueue<string>(_queueAfterUrlUpdate);
+                    FindDeep(_queueBeforeUrlUpdate);
                 }
             }
 
+
+            void FindDeep(ConcurrentQueue<string> urlsQueue)
+            {
+                for (int i = 0; i < urlsQueue.Count; i++)
+                {
+                    urlsQueue.TryDequeue(out string currentUrl);
+                    var htmlText = GetPageAsHtml(currentUrl);
+                    lock (_queueAfterUrlUpdate)
+                    {
+                        foreach (var item in FindAllUrlsInDocument(htmlText))
+                        {
+                            _queueAfterUrlUpdate.Enqueue(item);         //add all new urls to queue
+                        }
+                    }
+                }
+                _queueAfterUrlUpdate = RemoveDuplicatedUrls(_queueAfterUrlUpdate);  //remove duplicated urls from queue
+                _logger.LogNextSearchigLevel(_queueAfterUrlUpdate.Count);   //log count for found URLs
+            }
         }
 
         private void FindMatches()
         {
-            if (!_queue.IsEmpty)
+            object lockedObject = new object();
+            lock (lockedObject)
             {
-                for (int i = 0; i < _queue.Count; i++)
+                int _countOfMatches = 0;
+                if (!_queueToGetMatches.IsEmpty)
                 {
-                    string url = string.Empty;
-                    _queue.TryDequeue(out url);
-                    string text = GetPageAsText(url);
-                    _counter = 0;
-                    if (text.ToLower().IndexOf(_word.ToLower()) > 0)
+                    for (int i = 0; i < _queueToGetMatches.Count; i++)
                     {
-                        int _startIndex = 0;
-                        while ((_startIndex = text.ToLower().IndexOf(_word.ToLower(), _startIndex + _word.Length)) > 0)
+                        _queueToGetMatches.TryDequeue(out string url);
+                        string text = GetPageAsText(url);
+                        if (text.ToLower().IndexOf(_word.ToLower()) > 0)
                         {
-                            _counter++;
+                            int _startIndex = 0;
+                            while ((_startIndex = text.ToLower().IndexOf(_word.ToLower(), _startIndex + _word.Length)) > 0)
+                            {
+                                _countOfMatches++;
+                            }
+                        }
+                        _logger.LogNumberOfMatches(_countOfMatches, url);
+                        _countOfMatches = 0;
+                    }
+                    Interlocked.Exchange(ref queueCopyEnableFlag, 1);
+                }
+            }
+        }
+
+        private ConcurrentQueue<string> RemoveDuplicatedUrls(ConcurrentQueue<string> urlsQueue)
+        {
+            lock (this)
+            {
+                var urlsList = new List<string>(urlsQueue);
+                for (int i = 0; i < urlsList.Count; i++)
+                {
+                    for (int j = i + 1; j < urlsList.Count; j++)
+                    {
+                        if (urlsList[i].Trim().Equals(urlsList[j].Trim()))
+                        {
+                            urlsList.RemoveAt(j);
                         }
                     }
-                    _logger.LogNumberOfMatches(_counter, url);
                 }
-                Interlocked.Exchange(ref queueCopyEnableFlag, 1);
-            }            
+                return new ConcurrentQueue<string>(urlsList);
+            }
         }
 
         private List<string> FindAllUrlsInDocument(string text)
@@ -134,40 +148,45 @@ namespace UrlTextSearcher
         /// <returns></returns>
         private string GetPageAsText(string url)
         {
-            var currentPage = GetPageAsHtml(url);
-            Regex htmlTagExpression = new Regex("<[^>]*>");
-            currentPage = htmlTagExpression.Replace(currentPage, "");
-            return currentPage;
+            object lockedObject = new object();
+            lock (lockedObject)
+            {
+                var currentPage = GetPageAsHtml(url);
+                Regex htmlTagExpression = new Regex("<[^>]*>");
+                currentPage = htmlTagExpression.Replace(currentPage, "");
+                return currentPage;
+            }
+
         }
         private string GetPageAsHtml(string url)
         {
-            try
+            lock (this)
             {
-                lock (this)
+                try
                 {
                     using (WebClient webClient = new WebClient())
                     {
                         webClient.Encoding = Encoding.UTF8;
                         return webClient.DownloadString(url);
                     }
+
+                }
+                catch
+                {
+                    return string.Empty;
                 }
             }
-            catch
-            {
-                return string.Empty;
-            }
         }
-        private void LockedCopyUrlListToQueue()
+        private void LockedCopyUrlListToQueue(ConcurrentQueue<string> urlsQueue)
         {
-            if (Convert.ToBoolean(queueCopyEnableFlag))
-            {               
-                _queue = new ConcurrentQueue<string>(_allReferences);
-                Interlocked.Exchange(ref queueCopyEnableFlag, 0);
-            }
-            else
+            object lockedObject = new object();
+            lock (lockedObject)
             {
-                Thread.Sleep(2000);
-                LockedCopyUrlListToQueue();
+                if (Convert.ToBoolean(queueCopyEnableFlag) && urlsQueue.Count > 0)
+                {
+                    Interlocked.Exchange(ref queueCopyEnableFlag, 0);
+                    _queueToGetMatches = new ConcurrentQueue<string>(urlsQueue);                    
+                }
             }
         }
     }
