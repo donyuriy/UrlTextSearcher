@@ -12,13 +12,25 @@ namespace UrlTextSearcher
         private static FormMain formMain = null;
         private delegate void EnableDelegate(bool enable);
         private ILogger _logger;
+        private int comboBoxValueCount = 10;    //count of numbers for Combo Boxes (threads, URL depth)
+
+        private System.Windows.Forms.Timer timer1;
+        private DateTime _startTime = DateTime.MinValue;
+        private TimeSpan _currentElapsedTime = TimeSpan.Zero;
+        private TimeSpan _totalElapsedTime = TimeSpan.Zero;
+        private bool _timerRunning = false;
+
         public FormMain()
         {
             InitializeComponent();
             _logger = new Logger();
-            comboBoxUrlDepth.KeyPress += new KeyPressEventHandler(OnKeyPress);
+            comboBoxUrlDepth.KeyPress += new KeyPressEventHandler(OnKeyPress);            
             comboBoxThreadCount.KeyPress += new KeyPressEventHandler(OnKeyPress);
+            textBoxTimer.KeyPress += new KeyPressEventHandler(OnKeyPress);
             formMain = this;
+            timer1 = new System.Windows.Forms.Timer();
+            timer1.Interval = 1000;
+            timer1.Tick += new EventHandler(timer1_Tick);
         }
         public static void EnableStaticTextBox(bool enable) //to enable use textbox from another class
         {
@@ -29,44 +41,53 @@ namespace UrlTextSearcher
         }
         private void EnableTextBox(bool enable)
         {
-            if (InvokeRequired)
+            if (textBoxMessageOut != null)
             {
-                this.Invoke(new EnableDelegate(EnableTextBox), new object[] { enable });
-                return;
+                if (InvokeRequired)
+                {
+                    this.Invoke(new EnableDelegate(EnableTextBox), new object[] { enable });
+                    return;
+                }
+                textBoxMessageOut.Enabled = enable;
             }
-            textBoxMessageOut.Enabled = enable;
         }
 
-        public static void AppendStaticTextBox(string value)
+        public static void AppendStaticTextBox(string value)    //to enable use textbox from another thread
         {
             if (formMain != null)
                 formMain.AppendTextBox(value);
         }
 
-        private void AppendTextBox(string value) //to enable use textbox from another thread
+        private void AppendTextBox(string value)
         {
-            if (InvokeRequired)
+            if (textBoxMessageOut != null)
             {
-                this.Invoke(new Action<string>(AppendTextBox), new object[] { value });
-                return;
-            }
-            textBoxMessageOut.AppendText(Environment.NewLine);
-            textBoxMessageOut.AppendText(value);
+                if (InvokeRequired)
+                {
+                    this.Invoke(new Action<string>(AppendTextBox), new object[] { value });
+                    return;
+                }
+                textBoxMessageOut.AppendText(Environment.NewLine);
+                textBoxMessageOut.AppendText(value);
+            }           
             Application.DoEvents();
         }
 
-        public void BtnStopPerformClick()
+        public void BtnStopPerformClick()   //enable Button Stop event form other thread
         {
-            if (InvokeRequired && this != null)
+            if (BtnStop != null)
             {
-                this.Invoke(new Action(BtnStopPerformClick), new object[] { });
-                return;
-            }
-            BtnStop.PerformClick();
+                if (InvokeRequired)
+                {
+                    this.Invoke(new Action(BtnStopPerformClick), new object[] { });
+                    return;
+                }
+                BtnStop.PerformClick();
+            }            
             Application.DoEvents();
         }
 
-        private void OnKeyPress(object sender, KeyPressEventArgs e)
+        private void OnKeyPress(object sender, KeyPressEventArgs e) //disble input to comboboxes except array values
         {
             e.Handled = true;
         }
@@ -77,19 +98,18 @@ namespace UrlTextSearcher
             BtnStop.Enabled = false;
             textBoxMessageOut.ReadOnly = true;
             textBoxMessageOut.ScrollBars = ScrollBars.Vertical;
-
-            byte CBvalueCount = 10;
-            object[] comboBoxItemCollection = new object[CBvalueCount];
-            for (byte i = 0; i < CBvalueCount; i++)
+            
+            object[] comboBoxItemCollection = new object[comboBoxValueCount];
+            for (int i = 0; i < comboBoxValueCount; i++)
             {
-                comboBoxItemCollection[i] = i + 1;
+                comboBoxItemCollection[i] = i;
             }
             comboBoxThreadCount.Items.AddRange(comboBoxItemCollection);
             comboBoxThreadCount.SelectedIndex = 1;
             comboBoxUrlDepth.Items.AddRange(comboBoxItemCollection);
             comboBoxUrlDepth.SelectedIndex = 0;
         }
-        private void BtnStart_Click(object sender, EventArgs e)
+        private void BtnStart_Click(object sender, EventArgs e) 
         {
             BtnStart.Enabled = false;
             BtnStop.Enabled = true;
@@ -97,16 +117,23 @@ namespace UrlTextSearcher
             PanelWord.Enabled = false;
             PanelThread.Enabled = false;
             PanelDepth.Enabled = false;
+            textBoxTimer.IsAccessible = true;
             textBoxMessageOut.Clear();
-            //comboBoxUrlDepth.DropDownStyle = ComboBoxStyle.DropDownList;
-            //comboBoxThreadCount.DropDownStyle = ComboBoxStyle.DropDownList;
 
             string _searchingUrl = textBoxUrl.Text;
             string _searchingWord = textBoxWord.Text;
             Int32.TryParse(comboBoxUrlDepth.SelectedItem.ToString(), out int _depthOfLinkDisplay);
             Int32.TryParse(comboBoxThreadCount.SelectedItem.ToString(), out int _treadCount);
 
-            if (!ConnectionCheck.IsConnectedToInternet())
+            if (!_timerRunning)
+            {
+                _startTime = DateTime.Now;
+                _totalElapsedTime = _currentElapsedTime;
+                timer1.Start();
+                _timerRunning = true;
+            }
+
+            if (!ConnectionChecker.IsConnectedToInternet())       //check internet connection
             {
                 textBoxMessageOut.AppendText(Resource.NoInternetConnectionMessage);
                 BtnStop.PerformClick();
@@ -118,17 +145,20 @@ namespace UrlTextSearcher
                 if (!validator.ValidateUrl(_searchingUrl))
                 {
                     textBoxMessageOut.AppendText(Resource.InvalidURLMessage);
+                    BtnStopPerformClick();
                 }
                 else if (!validator.ValidateSearchWord(_searchingWord))
                 {
                     textBoxMessageOut.AppendText(Resource.InvalidSearchWordMessage);
+                    BtnStopPerformClick();
                 }
                 else
                 {
                     ThreadCreator tc = new ThreadCreator(_logger,_treadCount, _depthOfLinkDisplay, _searchingWord, _searchingUrl);
-                    tc.Start();
+                    tc.StartMultithreading();
+                    
 
-                    Thread th1 = new Thread(() =>
+                    Thread th1 = new Thread(() =>               //checks while working threads are Alive 
                     {
                         while (ThreadCreator.ThreadList.Any(t => t.IsAlive))
                         {
@@ -141,9 +171,8 @@ namespace UrlTextSearcher
             }
             catch (Exception ex)
             {
-                textBoxMessageOut.AppendText(Environment.NewLine);
                 textBoxMessageOut.AppendText(ex.Message);
-                BtnStop.PerformClick();
+                BtnStopPerformClick();
             }
 
         }
@@ -159,6 +188,11 @@ namespace UrlTextSearcher
                         ThreadCreator.ThreadList[i].Abort();
                     }
                 }
+            }
+            if(_timerRunning)
+            {
+                timer1.Stop();
+                _timerRunning = false;
             }
 
             BtnStart.Enabled = true;
@@ -181,12 +215,12 @@ namespace UrlTextSearcher
 
         private void textBoxUrl_Validated(object sender, EventArgs e)
         {
-            (sender as TextBox).Text = "https://stackoverflow.com/questions/17902882/how-to-enter-a-default-value-when-a-textbox-is-empty";
+            
         }
 
         private void textBoxWord_Validated(object sender, EventArgs e)
         {
-            (sender as TextBox).Text = "google";
+           
         }
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
@@ -199,10 +233,21 @@ namespace UrlTextSearcher
                 }
             }
         }
+
         private void LogScanningAccomplished()
         {
             _logger.SearchAccomplished();
             BtnStopPerformClick();
+        }
+                
+        private void timer1_Tick(object sender, EventArgs e)    //Timer to get visual information about searching time
+        {
+            var timeSinceStartTime = DateTime.Now - _startTime;
+            timeSinceStartTime = new TimeSpan(timeSinceStartTime.Hours,
+                                              timeSinceStartTime.Minutes,
+                                              timeSinceStartTime.Seconds);
+            
+            textBoxTimer.Text = timeSinceStartTime.ToString();
         }
     }
 }

@@ -13,7 +13,7 @@ namespace UrlTextSearcher
         private int _countOfUrls = 0;
        
         /// <summary>
-        /// Returns formated string to write the message
+        /// Returns formated string to write the message Count of matches on current URL
         /// </summary>
         /// <param name="count">Count of identified matches</param>
         /// <param name="url">Current serched URL</param>
@@ -24,29 +24,29 @@ namespace UrlTextSearcher
             string log;
             if (count > 0)
             {
-                log = $" {url} найдено {count} совпадений.";
+                log = $"{_countOfUrls}) {url} \tнайдено {count} совпадений.";
             }
             else
             {
-                log = $"{url} совпадений не найдено.";
+                log = $"{_countOfUrls}) {url} \tсовпадений не найдено.";
             }
             FormMain.AppendStaticTextBox(log);
         }
+
         public void LogScanningLevel(int levelNumber)
         {
             string log = $"\nПереход на следующий уровень URL: {levelNumber}.\n";
             FormMain.AppendStaticTextBox(log);
         }
+               
 
-        public void LogNextSearchigLevel(int numberOfUrls)
-        {
-            string log = $"\nНайдено {numberOfUrls} ссылок.\n";
-            FormMain.AppendStaticTextBox(log);
-        }
-
+        /// <summary>
+        /// Returns message about searching is finished + count of matches on all searching process
+        /// </summary>
         public void SearchAccomplished()
         {
             string log = $"\nПоиск окончен. Отсканировано {_countOfUrls} адресов.";
+            Interlocked.Exchange(ref _countOfUrls, 0);
             FormMain.AppendStaticTextBox(log);
         }
     }

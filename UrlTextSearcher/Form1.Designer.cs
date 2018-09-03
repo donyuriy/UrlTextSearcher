@@ -46,6 +46,8 @@ namespace UrlTextSearcher
             this.label4 = new System.Windows.Forms.Label();
             this.PanelButtons = new System.Windows.Forms.Panel();
             this.textBoxMessageOut = new System.Windows.Forms.TextBox();
+            this.textBoxTimer = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
             this.PanelUrl.SuspendLayout();
             this.PanelThread.SuspendLayout();
             this.PanelWord.SuspendLayout();
@@ -210,11 +212,31 @@ namespace UrlTextSearcher
             this.textBoxMessageOut.Size = new System.Drawing.Size(614, 231);
             this.textBoxMessageOut.TabIndex = 10;
             // 
+            // textBoxTimer
+            // 
+            this.textBoxTimer.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBoxTimer.Location = new System.Drawing.Point(632, 330);
+            this.textBoxTimer.Name = "textBoxTimer";
+            this.textBoxTimer.Size = new System.Drawing.Size(138, 22);
+            this.textBoxTimer.TabIndex = 11;
+            // 
+            // label5
+            // 
+            this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(635, 310);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(102, 17);
+            this.label5.TabIndex = 12;
+            this.label5.Text = "Searching time";
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(782, 553);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.textBoxTimer);
             this.Controls.Add(this.textBoxMessageOut);
             this.Controls.Add(this.PanelButtons);
             this.Controls.Add(this.PanelDepth);
@@ -258,6 +280,8 @@ namespace UrlTextSearcher
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Panel PanelButtons;
         private System.Windows.Forms.TextBox textBoxMessageOut;
+        private System.Windows.Forms.TextBox textBoxTimer;
+        private System.Windows.Forms.Label label5;
     }
 }
 

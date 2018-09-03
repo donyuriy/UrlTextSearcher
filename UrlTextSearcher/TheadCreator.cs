@@ -9,7 +9,7 @@ using UrlTextSearcher;
 using UrlTextSearcher.Interfaces;
 
 namespace UrlTextSearcher
-{   
+{
     public class ThreadCreator
     {
         public static List<Thread> ThreadList { get; private set; }
@@ -18,9 +18,10 @@ namespace UrlTextSearcher
         private string _searchingWord;
         private string _searchingUrl;
         private int _depthOfLinkDisplay;
-        private ILogger _logger;        
+        private ILogger _logger;
 
-        public ThreadCreator(ILogger logger,
+        public ThreadCreator(
+            ILogger logger,
             int numberOfThreads,
             int depthOfLinkDisplay,
             string searchingWord,
@@ -34,16 +35,16 @@ namespace UrlTextSearcher
             ThreadList = new List<Thread>();
         }
 
-        public void Start()
+        public void StartMultithreading()
         {
             Searcher searcher = new Searcher(_logger, _searchingWord, _searchingUrl, _depthOfLinkDisplay);
             for (int i = 0; i < _numberOfThreads; i++)
             {
-                Thread t = new Thread(() => searcher.FindAllReferencesDeep(new List<string>() { _searchingUrl }));
+                Thread t = new Thread(() => searcher.FindAllReferencesDeep(new string[] { _searchingUrl }));
                 t.IsBackground = true;
                 ThreadList.Add(t);
-                t.Start();
-            }            
+            }
+            ThreadList.ForEach(item => item.Start());
         }
     }
 }

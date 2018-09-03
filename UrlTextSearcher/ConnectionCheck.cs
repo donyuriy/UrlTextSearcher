@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace UrlTextSearcher
 {
-    class ConnectionCheck
+    class ConnectionChecker
     {
         [DllImport("wininet.dll")]
         private extern static bool InternetGetConnectedState(out int Description, int ReservedValue);
